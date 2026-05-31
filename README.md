@@ -25,6 +25,12 @@ This proxy listens on `127.0.0.1:8787` and forwards requests to hex.pm, strippin
 go install github.com/dvcrn/hexpm-envoy-proxy@latest
 ```
 
+Or with mise:
+
+```bash
+mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
+```
+
 ## Usage
 
 Start the proxy, then set the Hex environment variables:
@@ -44,9 +50,53 @@ Then `mix local.hex`, `mix deps.get`, etc. work normally.
 -version        print version and exit
 ```
 
-## Startup script snippet
+## Claude Code on the Web
 
-For use in CI or container startup scripts:
+Add the following to your **startup script** (SessionStart hook):
+
+```bash
+mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
+if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
+  nohup mise x -- hexpm-envoy-proxy > /tmp/hexpm-envoy-proxy.log 2>&1 &
+  disown
+  sleep 2
+fi
+# Wait for proxy to be ready (up to 5s)
+for i in $(seq 1 10); do
+  if curl -s -o /dev/null -w '' http://127.0.0.1:8787/ 2>/dev/null; then
+    echo "hexpm-envoy-proxy is ready"
+    break
+  fi
+  sleep 0.5
+done
+export HEX_MIRROR=http://127.0.0.1:8787
+export HEX_BUILDS_URL=http://127.0.0.1:8787/builds
+
+echo "export HEX_MIRROR=$HEX_MIRROR" >> ~/.bashrc
+echo "export HEX_BUILDS_URL=$HEX_BUILDS_URL" >> ~/.bashrc
+```
+
+In addition to the startup script, set these **environment variables** in your environment configuration:
+
+| Variable | Value |
+|---|---|
+| `HEX_MIRROR` | `http://127.0.0.1:8787` |
+| `HEX_BUILDS_URL` | `http://127.0.0.1:8787/builds` |
+
+Setting them as environment variables ensures they are available to all processes, not just those spawned by the startup script.
+
+## Codex
+
+For OpenAI Codex, add the same startup script above to **both** the **setup script** and the **maintenance script**. The setup script runs once when the environment is created, and the maintenance script runs on subsequent task executions — both need the proxy running.
+
+Additionally, set these **environment variables** separately in the Codex environment configuration:
+
+| Variable | Value |
+|---|---|
+| `HEX_MIRROR` | `http://127.0.0.1:8787` |
+| `HEX_BUILDS_URL` | `http://127.0.0.1:8787/builds` |
+
+## Generic CI / container startup
 
 ```bash
 if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
