@@ -87,7 +87,7 @@ for i in $(seq 1 10); do
 done
 ```
 
-Then in your project's setup (e.g. CLAUDE.md or a setup script that runs after the proxy is started):
+Then in your project's setup script, after the proxy is running:
 
 ```bash
 (...)
