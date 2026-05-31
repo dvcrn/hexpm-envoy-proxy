@@ -68,7 +68,7 @@ Then `mix local.hex`, `mix deps.get`, etc. work normally.
 
 ## Claude Code on the Web
 
-Add the following to your **startup script** (SessionStart hook):
+Add the following to your **startup script**:
 
 ```bash
 mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
@@ -87,7 +87,7 @@ for i in $(seq 1 10); do
 done
 ```
 
-Then in your project's setup script, after the proxy is running:
+Then configure hex & rebar
 
 ```bash
 (...)
@@ -192,14 +192,3 @@ Additionally, set these **environment variables** separately in the Codex enviro
 |---|---|
 | `HEX_MIRROR` | `http://127.0.0.1:8787` |
 | `HEX_BUILDS_URL` | `http://127.0.0.1:8787/builds` |
-
-## Generic CI / container startup
-
-```bash
-if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
-  hexpm-envoy-proxy > /tmp/hexpm-envoy-proxy.log 2>&1 &
-  sleep 1
-fi
-export HEX_MIRROR=http://127.0.0.1:8787
-export HEX_BUILDS_URL=http://127.0.0.1:8787/builds
-```
