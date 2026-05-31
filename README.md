@@ -103,7 +103,29 @@ Setting them as environment variables ensures they are available to all processe
 
 ## Codex
 
-For OpenAI Codex, add the same startup script above to **both** the **setup script** and the **maintenance script**. The setup script runs once when the environment is created, and the maintenance script runs on subsequent task executions — both need the proxy running.
+For OpenAI Codex, add the same startup script above to **both** the **setup script** and the **maintenance script**. The setup script runs once when the environment is created, and the maintenance script runs on subsequent task executions — both need the proxy running. 
+
+Maintenance Script example: 
+
+```bash
+mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
+if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
+  nohup mise x -- hexpm-envoy-proxy > /tmp/hexpm-envoy-proxy.log 2>&1 &
+  disown
+  sleep 2
+fi
+# Wait for proxy to be ready (up to 5s)
+for i in $(seq 1 10); do
+  if curl -s -o /dev/null -w '' http://127.0.0.1:8787/ 2>/dev/null; then
+    echo "hexpm-envoy-proxy is ready"
+    break
+  fi
+  sleep 0.5
+done
+
+cat /tmp/hexpm-envoy-proxy.log
+mix deps.get
+```
 
 Additionally, set these **environment variables** separately in the Codex environment configuration:
 
