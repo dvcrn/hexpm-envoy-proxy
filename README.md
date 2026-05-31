@@ -73,8 +73,8 @@ Add the following to your **startup script** (SessionStart hook):
 ```bash
 mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
 if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
-  nohup mise x -- hexpm-envoy-proxy > /tmp/hexpm-envoy-proxy.log 2>&1 &
-  disown
+  PROXY_BIN=$(mise which hexpm-envoy-proxy)
+  nohup "$PROXY_BIN" > /tmp/hexpm-envoy-proxy.log 2>&1 &  
   sleep 2
 fi
 # Wait for proxy to be ready (up to 5s)
@@ -85,11 +85,30 @@ for i in $(seq 1 10); do
   fi
   sleep 0.5
 done
-export HEX_MIRROR=http://127.0.0.1:8787
-export HEX_BUILDS_URL=http://127.0.0.1:8787/builds
+```
 
-echo "export HEX_MIRROR=$HEX_MIRROR" >> ~/.bashrc
-echo "export HEX_BUILDS_URL=$HEX_BUILDS_URL" >> ~/.bashrc
+Then in your project's setup script, after the proxy is running:
+
+```bash
+(...)
+
+  # Install Hex from GitHub
+  echo "Installing Hex..."
+  mise x -- mix archive.install github hexpm/hex branch latest --force
+
+  # setting hex proxy
+  mise x -- mix hex.repo set hexpm --url http://127.0.0.1:8787 
+  # Install Rebar3 from GitHub
+  echo "Installing Rebar3..."
+  REBAR_VER="3.24.0"
+  mkdir -p ~/.mix
+  curl -fsSL "https://github.com/erlang/rebar3/releases/download/${REBAR_VER}/rebar3" \
+    -o ~/.mix/rebar3
+  chmod +x ~/.mix/rebar3
+  mise x -- mix local.rebar rebar3 ~/.mix/rebar3 --force
+
+  echo "Fetching mix dependencies..."
+  mise x -- mix deps.get
 ```
 
 In addition to the startup script, set these **environment variables** in your environment configuration:
@@ -103,7 +122,47 @@ Setting them as environment variables ensures they are available to all processe
 
 ## Codex
 
-For OpenAI Codex, add the same startup script above to **both** the **setup script** and the **maintenance script**. The setup script runs once when the environment is created, and the maintenance script runs on subsequent task executions — both need the proxy running. 
+For OpenAI Codex, add the following to the **setup script**. The setup script runs once when the environment is created.
+
+Setup Script:
+
+```bash
+mise trust
+mise install
+
+mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
+if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
+  PROXY_BIN=$(mise which hexpm-envoy-proxy)
+  nohup "$PROXY_BIN" > /tmp/hexpm-envoy-proxy.log 2>&1 &
+  sleep 2
+fi
+# Wait for proxy to be ready (up to 5s)
+for i in $(seq 1 10); do
+  if curl -s -o /dev/null -w '' http://127.0.0.1:8787/ 2>/dev/null; then
+    echo "hexpm-envoy-proxy is ready"
+    break
+  fi
+  sleep 0.5
+done
+
+mise x -- mix archive.install github hexpm/hex branch latest --force
+
+# setting hex proxy
+mise x -- mix hex.repo set hexpm --url http://127.0.0.1:8787 
+
+# Install Rebar3 from GitHub
+echo "Installing Rebar3..."
+REBAR_VER="3.24.0"
+mkdir -p ~/.mix
+curl -fsSL "https://github.com/erlang/rebar3/releases/download/${REBAR_VER}/rebar3" \
+    -o ~/.mix/rebar3
+chmod +x ~/.mix/rebar3
+mise x -- mix local.rebar rebar3 ~/.mix/rebar3 --force
+
+mise x -- mix deps.get
+```
+
+The **maintenance script** runs on subsequent task executions and needs the proxy running:
 
 Maintenance Script example: 
 
