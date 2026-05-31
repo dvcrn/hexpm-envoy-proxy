@@ -24,6 +24,7 @@ func main() {
 	}
 
 	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
 		ResponseHeaderTimeout: 30 * time.Second,
 		MaxIdleConnsPerHost:   10,
 	}
