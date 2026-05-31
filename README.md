@@ -145,7 +145,7 @@ for i in $(seq 1 10); do
   sleep 0.5
 done
 
-mix archive.install github hexpm/hex branch latest --force
+mise x -- mix archive.install github hexpm/hex branch latest --force
 
 # setting hex proxy
 mise x -- mix hex.repo set hexpm --url http://127.0.0.1:8787 
@@ -159,7 +159,7 @@ curl -fsSL "https://github.com/erlang/rebar3/releases/download/${REBAR_VER}/reba
 chmod +x ~/.mix/rebar3
 mise x -- mix local.rebar rebar3 ~/.mix/rebar3 --force
 
-mix deps.get
+mise x -- mix deps.get
 ```
 
 The **maintenance script** runs on subsequent task executions and needs the proxy running:
