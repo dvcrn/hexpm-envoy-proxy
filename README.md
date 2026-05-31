@@ -1,14 +1,30 @@
 # hexpm-envoy-proxy
 
-Tiny reverse proxy that fixes Erlang/OTP's `httpc` incompatibility with Envoy-based TLS inspection proxies.
+Get hex.pm package resolution working in cloud environments like [Claude Code on the Web](https://claude.ai/code) or [OpenAI Codex](https://chatgpt.com/codex).
+
+These environments route outbound traffic through Envoy-based TLS inspection proxies. Erlang/OTP's built-in HTTP client (`httpc`) is incompatible with these proxies, which means `mix deps.get`, `mix local.hex`, and anything else that fetches packages from hex.pm will fail with a 503 error.
 
 ## The problem
 
-Erlang's `httpc` client sends an empty `te:` header on every request. Envoy-based egress proxies (commonly used in container environments with TLS inspection) reject this with HTTP 503:
+Erlang's `httpc` sends an empty `te:` hop-by-hop header on every HTTP request. A normal GET request from `httpc` looks like this:
 
 ```
+GET /test HTTP/1.1
+content-length: 0
+te:
+host: repo.hex.pm
+connection: keep-alive
+```
+
+The empty `te:` header is technically valid per the HTTP spec but Envoy-based egress proxies reject it, returning:
+
+```
+HTTP/1.1 503 Service Unavailable
+
 upstream connect error or disconnect/reset before headers. reset reason: connection termination
 ```
+
+The same request without the `te:` header works fine. This isn't a hex.pm issue — `httpc` can't reach *any* external host through these proxies.
 
 This breaks `mix deps.get`, `mix local.hex`, and any Elixir/Erlang tool that uses `httpc` to reach hex.pm.
 
