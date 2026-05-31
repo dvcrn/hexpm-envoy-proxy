@@ -132,8 +132,8 @@ mise install
 
 mise use -g go:github.com/dvcrn/hexpm-envoy-proxy@latest
 if ! pgrep -f hexpm-envoy-proxy > /dev/null 2>&1; then
-  nohup mise x -- hexpm-envoy-proxy > /tmp/hexpm-envoy-proxy.log 2>&1 &
-  disown
+  PROXY_BIN=$(mise which hexpm-envoy-proxy)
+  nohup "$PROXY_BIN" > /tmp/hexpm-envoy-proxy.log 2>&1 &
   sleep 2
 fi
 # Wait for proxy to be ready (up to 5s)
